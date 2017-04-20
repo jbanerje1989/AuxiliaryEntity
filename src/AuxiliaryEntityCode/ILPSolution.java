@@ -14,6 +14,7 @@ public class ILPSolution {
 	private HashMap<String, Integer> entityLabeltoIndexMap; 
 	private HashMap<String, Integer> mintermLabelToIndexMap;
 	private HashMap<Integer, String> entityIndexToLabelMap;
+	private List<String> initFailed;
 	private HashMap<String, List<String>> IIRs;
 	private int K;
 	private int DK;
@@ -94,6 +95,10 @@ public class ILPSolution {
 			createXVariables();
 			createCVariables();
 			gx = attackerILP.getInitialFailureArr();
+			initFailed = new ArrayList<String>();
+			for(int index = 0; index < entityIndexToLabelMap.size(); index++){
+				if(gx[index] > 0) initFailed.add(entityIndexToLabelMap.get(index));
+			}
 			compDeadInit = attackerILP.getFinalFailureX().size();
 			createConstraints();
 			createObjective();
@@ -151,11 +156,15 @@ public class ILPSolution {
 				expr = cplex.sum(expr, qx[i]);
 			cplex.addLe(expr, DK);	
 	
-			// If attacked entity is not defended it fails at t=0
-			for (int i = 0;i<XCOUNT;i++){				
-				cplex.addGe(x[i][0], cplex.diff(gx[i], qx[i]));
+			// An attacked entity always fail initially
+			for (int i = 0;i<XCOUNT;i++){	
+				if(gx[i] > 0){
+					cplex.addEq(qx[i], 0);
+					cplex.addEq(x[i][0], 1);
+				}
 			}
 		
+			// 
 			// Generating constraints for IIRs
 			for(String str: IIRs.keySet()){
 				for(String minterms : IIRs.get(str)){
@@ -241,6 +250,8 @@ public class ILPSolution {
 		}
 		return compnentsDead;
 	}
+	
+	public List<String> getInitFailedEntities() { return initFailed;}
 
 	public static void main(String args[]) {
 		ILPSolution ex = new ILPSolution("case30IIRsAtTimeStep1",7, 6);

@@ -12,10 +12,11 @@ import java.util.Scanner;
 public class HeuristicSolution {
 	private HashMap<String, Integer> entityLabeltoIndexMap; 
 	private HashMap<String, List<List<String>>> IIRs;
+	List<String> initFailed;
 	private int totalProtected;
 	private int hardeningBudget = 0;
 	
-	HeuristicSolution(String file, int hardVal) throws FileNotFoundException{
+	HeuristicSolution(String file, ILPSolution objectILP, int hardVal) throws FileNotFoundException{
 		hardeningBudget = hardVal;
 		entityLabeltoIndexMap = new HashMap<String, Integer>();
 		IIRs = new HashMap<String, List<List<String>>>();
@@ -45,6 +46,7 @@ public class HeuristicSolution {
 			IIRs.put(firstEntity.toString(), dependency);
 		}
 		scan.close();
+		initFailed = objectILP.getInitFailedEntities();
 	}
 	
 	public void compute(){
@@ -56,7 +58,8 @@ public class HeuristicSolution {
 			List<String> protectSetForIteration = new ArrayList<String>();
 			double mintermHitNum = 0;
 			for(String entity: entityLabeltoIndexMap.keySet()){
-				if(protectedEntities.contains(entity)) continue;
+				if(protectedEntities.contains(entity) || initFailed.contains(entity) || !IIRs.containsKey(entity)) 
+					continue;
 				
 				HashMap<String, List<List<String>>> IIRdummy = new HashMap<String, List<List<String>>>();
 				List<String> curFailedEntity = new ArrayList<String>(); 
@@ -66,6 +69,7 @@ public class HeuristicSolution {
 				for(String str: IIRs.keySet())
 					if(!protectedEntities.contains(str))
 						IIRdummy.put(str, IIRs.get(str));
+				
 				int start = 0;
 				while(start < curFailedEntity.size()){
 					String entityProtected = curFailedEntity.get(start);
